@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mess Response — Student Portal</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { base: '#0b132b', surface: '#111a37', surface2: '#0e1730', edge: '#1e2a4d', edgesoft: '#16213f' },
+        fontFamily: { sans: ['Manrope', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  html,body{ background:#0b132b; }
+  body{ font-family:'Manrope', sans-serif; }
+  .font-mono{ font-family:'JetBrains Mono', monospace; }
+
+  .choice-card{
+    transition: border-color 160ms ease, background-color 160ms ease, transform 120ms ease;
+  }
+  .choice-card:active{ transform: scale(0.98); }
+  .choice-eating.selected{
+    border-color: rgba(34,197,94,0.55);
+    background: rgba(34,197,94,0.08);
+    box-shadow: 0 0 0 1px rgba(34,197,94,0.35), 0 0 24px rgba(34,197,94,0.12);
+  }
+  .choice-skipping.selected{
+    border-color: rgba(251,69,112,0.55);
+    background: rgba(251,69,112,0.08);
+    box-shadow: 0 0 0 1px rgba(251,69,112,0.35), 0 0 24px rgba(251,69,112,0.12);
+  }
+
+  @keyframes stampIn{
+    0%{ opacity:0; transform: scale(0.85) rotate(-2deg); }
+    60%{ opacity:1; transform: scale(1.04) rotate(0.5deg); }
+    100%{ opacity:1; transform: scale(1) rotate(0deg); }
+  }
+  .stamp{ animation: stampIn 420ms cubic-bezier(.2,.8,.3,1) both; }
+
+  @media (prefers-reduced-motion: reduce){
+    .stamp, .choice-card{ animation:none !important; transition:none !important; }
+  }
+
+  input:focus{ outline:none; }
+</style>
+</head>
+
+<body class="min-h-screen bg-base text-slate-200 antialiased">
+
+  <div class="max-w-md mx-auto min-h-screen flex flex-col px-5 py-8">
+
+    <!-- Header -->
+    <header class="mb-8">
+      <div class="w-10 h-10 rounded-lg bg-surface border border-edge grid place-items-center mb-4">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b96b3" stroke-width="1.8">
+          <path d="M4 4h16v4H4z" stroke-linejoin="round"/>
+          <path d="M6 12h12M6 16h8" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1 class="text-xl font-bold text-slate-100 tracking-tight">Mess Response</h1>
+      <p id="mealLabel" class="text-sm text-slate-400 mt-1 font-mono">—</p>
+    </header>
+
+    <!-- ======================= FORM STATE ======================= -->
+    <section id="formState" class="flex-1 flex flex-col">
+
+      <label class="block mb-5">
+        <span class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 block">Roll Number</span>
+        <input id="rollInput" type="text" inputmode="text" placeholder="e.g. 4805"
+          class="w-full bg-surface border border-edge rounded-xl px-4 py-3.5 text-slate-100 font-mono text-base
+                 placeholder:text-slate-600 focus:border-slate-500 transition-colors" />
+      </label>
+
+      <label class="block mb-6">
+        <span class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 block">Full Name</span>
+        <input id="nameInput" type="text" placeholder="e.g. Akash chauhan"
+          class="w-full bg-surface border border-edge rounded-xl px-4 py-3.5 text-slate-100 text-base
+                 placeholder:text-slate-600 focus:border-slate-500 transition-colors" />
+      </label>
+
+      <span class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 block">Will you eat this meal?</span>
+      <div class="grid grid-cols-2 gap-3 mb-8">
+        <button type="button" data-choice="eating"
+          class="choice-card choice-eating border border-edge rounded-2xl py-6 flex flex-col items-center gap-2">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+            <path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="text-sm font-bold text-slate-100">Eating</span>
+        </button>
+        <button type="button" data-choice="skipping"
+          class="choice-card choice-skipping border border-edge rounded-2xl py-6 flex flex-col items-center gap-2">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="text-sm font-bold text-slate-100">Skipping</span>
+        </button>
+      </div>
+
+      <div id="dishSection" class="mb-8 hidden">
+        <span class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2 block">What are you having? <span class="text-slate-600 normal-case font-normal">(optional)</span></span>
+        <div id="dishChips" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <button id="submitBtn" disabled
+        class="mt-auto w-full rounded-xl py-4 text-sm font-bold tracking-wide transition-colors
+               bg-surface border border-edge text-slate-500 disabled:cursor-not-allowed">
+        Submit Response
+      </button>
+      <p id="formError" class="text-rose-400 text-xs text-center mt-3 hidden"></p>
+    </section>
+
+    <!-- ======================= CONFIRMATION STATE ======================= -->
+    <section id="confirmState" class="flex-1 flex-col hidden">
+      <div class="stamp rounded-2xl border p-6 mt-6" id="confirmCard">
+        <div class="flex items-center gap-2 mb-5">
+          <span class="w-2 h-2 rounded-full bg-green-400"></span>
+          <span class="text-xs font-semibold uppercase tracking-widest text-slate-400">Response recorded</span>
+        </div>
+
+        <dl class="space-y-3 font-mono text-sm">
+          <div class="flex justify-between">
+            <dt class="text-slate-500">Roll Number</dt>
+            <dd id="confirmRoll" class="text-slate-100 font-semibold">—</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-500">Name</dt>
+            <dd id="confirmName" class="text-slate-100 font-semibold">—</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-500">Decision</dt>
+            <dd id="confirmDecision" class="font-semibold">—</dd>
+          </div>
+          <div class="flex justify-between items-start" id="confirmDishRow">
+            <dt class="text-slate-500 shrink-0">Dishes</dt>
+            <dd id="confirmDishes" class="text-slate-300 text-right">—</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-slate-500">Submitted</dt>
+            <dd id="confirmTime" class="text-slate-300">—</dd>
+          </div>
+        </dl>
+      </div>
+
+      <p class="text-slate-500 text-xs text-center mt-6 leading-relaxed">
+        Changed your mind? You can edit your response until the mess manager<br class="hidden sm:block" />
+        closes entries for this meal.
+      </p>
+      <button id="editBtn" class="mt-4 w-full rounded-xl py-3.5 text-sm font-semibold border border-edge text-slate-300 hover:bg-surface2 transition-colors">
+        Edit my response
+      </button>
+    </section>
+
+    <p class="text-center text-[11px] text-slate-600 mt-8">
+      Backend mode: <span id="backendModeLabel" class="font-mono text-slate-500">demo</span>
+    </p>
+  </div>
+
+<script type="module">
+/* =========================================================================
+   STUDENT MESS PORTAL
+   -------------------------------------------------------------------------
+   Mirror CONFIG.backend / collection / table names with dashboard/index.html
+   so both point at the same database. In 'demo' mode, submissions are pushed
+   straight into any open dashboard tab via BroadcastChannel — open both
+   files from the same local server to see it end to end with no backend.
+   ========================================================================= */
+
+const CONFIG = {
+  backend: 'demo', // 'demo' | 'firebase' | 'supabase'
+
+  // Falls back to this if no menu has been broadcast/loaded from the manager
+  // dashboard yet. Keep in sync with index.html's CONFIG.defaultMenu.
+  defaultMenu: ['रोटी · Roti', 'सब्ज़ी · Sabzi', 'पनीर करी · Paneer Curry', 'पुलाव · Pulao', 'दाल · Dal', 'दही · Curd'],
+
+  firebase: {
+    apiKey: 'YOUR_FIREBASE_API_KEY',
+    authDomain: 'YOUR_PROJECT.firebaseapp.com',
+    projectId: 'YOUR_PROJECT_ID',
+    storageBucket: 'YOUR_PROJECT.appspot.com',
+    messagingSenderId: 'YOUR_SENDER_ID',
+    appId: 'YOUR_APP_ID',
+    collection: 'messResponses',
+  },
+
+  supabase: {
+    url: 'https://YOUR_PROJECT.supabase.co',
+    anonKey: 'YOUR_SUPABASE_ANON_KEY',
+    table: 'mess_responses',
+  },
+};
+
+document.getElementById('backendModeLabel').textContent = CONFIG.backend;
+
+// ---------------------------------------------------------------------------
+// MEAL LABEL — guesses the current meal window so students see relevant context
+// ---------------------------------------------------------------------------
+function currentMeal(){
+  const h = new Date().getHours();
+  if (h >= 6 && h < 10) return 'Breakfast';
+  if (h >= 12 && h < 15) return 'Lunch';
+  if (h >= 19 && h < 22) return 'Dinner';
+  return 'Next Meal';
+}
+document.getElementById('mealLabel').textContent = `${currentMeal()} · ${new Date().toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'short' })}`;
+
+// ---------------------------------------------------------------------------
+// STATE + DOM
+// ---------------------------------------------------------------------------
+let selectedChoice = null;
+let selectedDishes = new Set();
+let menu = JSON.parse(localStorage.getItem('messMenu') || 'null') || [...CONFIG.defaultMenu];
+
+const rollInput = document.getElementById('rollInput');
+const nameInput = document.getElementById('nameInput');
+const submitBtn = document.getElementById('submitBtn');
+const formError = document.getElementById('formError');
+const formState = document.getElementById('formState');
+const confirmState = document.getElementById('confirmState');
+const dishSection = document.getElementById('dishSection');
+const dishChips = document.getElementById('dishChips');
+
+function renderDishChips(){
+  dishChips.innerHTML = menu.map(dish => `
+    <button type="button" data-dish="${dish}"
+      class="dish-chip px-3 py-1.5 rounded-full border border-edge bg-surface text-xs text-slate-300 transition-colors">
+      ${dish}
+    </button>
+  `).join('');
+}
+renderDishChips();
+
+dishChips.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-dish]');
+  if (!btn) return;
+  const dish = btn.dataset.dish;
+  if (selectedDishes.has(dish)){
+    selectedDishes.delete(dish);
+    btn.classList.remove('bg-green-500/10', 'border-green-500/50', 'text-green-300');
+  } else {
+    selectedDishes.add(dish);
+    btn.classList.add('bg-green-500/10', 'border-green-500/50', 'text-green-300');
+  }
+});
+
+document.querySelectorAll('.choice-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedChoice = card.dataset.choice;
+    dishSection.classList.toggle('hidden', selectedChoice !== 'eating');
+    validateForm();
+  });
+});
+
+[rollInput, nameInput].forEach(inp => inp.addEventListener('input', validateForm));
+
+function validateForm(){
+  const ready = rollInput.value.trim().length > 0 && nameInput.value.trim().length > 0 && selectedChoice;
+  submitBtn.disabled = !ready;
+  submitBtn.classList.toggle('bg-slate-100', ready);
+  submitBtn.classList.toggle('text-base', ready);
+  submitBtn.classList.toggle('border-transparent', ready);
+  submitBtn.classList.toggle('text-slate-500', !ready);
+}
+
+submitBtn.addEventListener('click', async () => {
+  formError.classList.add('hidden');
+  const rollNumber = rollInput.value.trim();
+  const name = nameInput.value.trim();
+  if (!rollNumber || !name || !selectedChoice) return;
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+  try {
+    const items = selectedChoice === 'eating' ? Array.from(selectedDishes) : [];
+    const entry = await backend.submit({ rollNumber, name, decision: selectedChoice, items });
+    showConfirmation(entry);
+  } catch (err) {
+    console.error('Submit failed:', err);
+    formError.textContent = 'Could not submit your response. Please try again.';
+    formError.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit Response';
+  }
+});
+
+function showConfirmation(entry){
+  const isEating = entry.decision === 'eating';
+  document.getElementById('confirmRoll').textContent = entry.rollNumber;
+  document.getElementById('confirmName').textContent = entry.name;
+  const decisionEl = document.getElementById('confirmDecision');
+  decisionEl.textContent = isEating ? 'Eating' : 'Skipping';
+  decisionEl.className = isEating ? 'font-semibold text-green-400' : 'font-semibold text-rose-400';
+  document.getElementById('confirmTime').textContent = new Date(entry.timestamp).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true });
+
+  const dishRow = document.getElementById('confirmDishRow');
+  const items = entry.items || [];
+  if (isEating && items.length){
+    document.getElementById('confirmDishes').textContent = items.join(', ');
+    dishRow.classList.remove('hidden');
+  } else {
+    dishRow.classList.add('hidden');
+  }
+
+  const card = document.getElementById('confirmCard');
+  card.style.borderColor = isEating ? 'rgba(34,197,94,0.35)' : 'rgba(251,69,112,0.35)';
+  card.style.background = isEating ? 'rgba(34,197,94,0.06)' : 'rgba(251,69,112,0.06)';
+
+  formState.classList.add('hidden');
+  confirmState.classList.remove('hidden');
+  confirmState.classList.add('flex');
+}
+
+document.getElementById('editBtn').addEventListener('click', () => {
+  confirmState.classList.add('hidden');
+  confirmState.classList.remove('flex');
+  formState.classList.remove('hidden');
+});
+
+function resetFormFully(){
+  rollInput.value = '';
+  nameInput.value = '';
+  selectedChoice = null;
+  selectedDishes = new Set();
+  document.querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+  dishSection.classList.add('hidden');
+  renderDishChips();
+  validateForm();
+}
+
+// ---------------------------------------------------------------------------
+// BACKENDS — each implements submit({ rollNumber, name, decision }) -> entry
+// ---------------------------------------------------------------------------
+const backend = {
+
+  // --- DEMO: broadcasts to any open dashboard tab (same origin) -----------
+  async submit({ rollNumber, name, decision, items }){
+    const entry = {
+      id: `student-${rollNumber}-${Date.now()}`,
+      rollNumber,
+      name,
+      decision,
+      items: items || [],
+      timestamp: new Date().toISOString(),
+    };
+    if ('BroadcastChannel' in window){
+      new BroadcastChannel('mess-dashboard-demo').postMessage({ type: 'entry', entry });
+    }
+    return { ...entry, timestamp: new Date(entry.timestamp) };
+  },
+
+  /* -------------------------------------------------------------------
+     FIREBASE (Firestore) — uncomment and fill CONFIG.firebase to use.
+
+     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+     import { getFirestore, collection, addDoc, serverTimestamp }
+       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+     const app = initializeApp(CONFIG.firebase);
+     const db = getFirestore(app);
+
+     async function submitToFirebase({ rollNumber, name, decision, items }){
+       const ref = await addDoc(collection(db, CONFIG.firebase.collection), {
+         rollNumber, name, decision, items: items || [], timestamp: serverTimestamp(),
+       });
+       return { id: ref.id, rollNumber, name, decision, items, timestamp: new Date() };
+     }
+     // then set: backend.submit = submitToFirebase;
+  ------------------------------------------------------------------- */
+
+  /* -------------------------------------------------------------------
+     SUPABASE — uncomment and fill CONFIG.supabase to use.
+
+     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+     const supabase = createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+
+     async function submitToSupabase({ rollNumber, name, decision, items }){
+       const { data, error } = await supabase.from(CONFIG.supabase.table)
+         .insert({ roll_number: rollNumber, name, decision, items: items || [] })
+         .select().single();
+       if (error) throw error;
+       return { id: String(data.id), rollNumber, name, decision, items, timestamp: new Date(data.created_at) };
+     }
+     // then set: backend.submit = submitToSupabase;
+  ------------------------------------------------------------------- */
+};
+
+// Listen for a reset broadcast from the dashboard so the form unlocks fresh
+// for the next meal (demo mode only).
+if ('BroadcastChannel' in window){
+  const demoChannel = new BroadcastChannel('mess-dashboard-demo');
+  demoChannel.onmessage = (event) => {
+    if (event.data?.type === 'reset'){
+      confirmState.classList.add('hidden');
+      confirmState.classList.remove('flex');
+      formState.classList.remove('hidden');
+      resetFormFully();
+    }
+    if (event.data?.type === 'menu'){
+      menu = event.data.menu;
+      selectedDishes = new Set([...selectedDishes].filter(d => menu.includes(d)));
+      renderDishChips();
+    }
+  };
+}
+</script>
+</body>
+</html>
